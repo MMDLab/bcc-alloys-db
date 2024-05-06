@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+	<link rel="icon" href="./favicon.ico">
+
+	<title>JD-Table</title>
+
+	<!-- Polyfill -->
+	<script src="https://polyfill.io/v3/polyfill.js?features=es5,es6,es7&flags=gated"></script>
+
+	<!-- VueJS -->
+	<script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
+
+	<!-- JD-Table Vue Component -->
+	<script type="text/javascript" src="./js/jd-table.min.js"></script>
+
+	<!-- JD-Table Styles -->
+	<link rel="stylesheet" href="./css/jd-table.min.css">
+
+	<!-- Font Awesome (Free) -->
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+
+	<!-- Font -->
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+
+	<style>
+		body
+		{
+			font-family : 'Roboto', sans-serif;
+		}
+	</style>
+</head>
+
+<body>
+<noscript>
+	<strong>We're sorry but JD-Table doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+</noscript>
+
+<div id="app">
+	<JDTable
+			:option                 = "tableOptions"
+			:loader                 = "tableLoader"
+			:event-from-app         = "eventFromApp"
+			:event-from-app-trigger = "eventFromAppTrigger"
+			@event-from-jd-table    = "processEventFromApp( $event )"
+	/>
+
+	<iframe id="excelExportArea" style="display:none"></iframe>
+</div>
+
+<script type="text/javascript">
+	const app = new Vue
+	({
+		el : '#app',
+
+		data :
+		{
+			tableOptions : {},
+
+			eventFromApp  :
+			{
+				name : null,
+				data : null
+			},
+
+			eventFromAppTrigger : false,
+
+			tableLoader : false,
+
+			columns :
+			[
+		{
+                       name          : 'id',
+                       title         : 'id',
+                       order         : 1,
+                       type          : 'Number',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 12
+		},
+		{
+                       name          : 'sorted_formula',
+                       title         : 'sorted_formula',
+                       order         : 2,
+                       type          : 'String',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 11
+		},
+		{
+                       name          : 'B',
+                       title         : 'B',
+                       order         : 3,
+                       type          : 'Number',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 11
+		},
+		{
+                       name          : 'G',
+                       title         : 'G',
+                       order         : 4,
+                       type          : 'Number',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 11
+		},
+		{
+                       name          : 'E',
+                       title         : 'E',
+                       order         : 5,
+                       type          : 'Number',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 11
+		},
+		{
+                       name          : 'C_prime',
+                       title         : 'C_prime',
+                       order         : 6,
+                       type          : 'Number',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 11
+		},
+		{
+                       name          : 'c11',
+                       title         : 'c11',
+                       order         : 7,
+                       type          : 'Number',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 11
+		},
+		{
+                       name          : 'c12',
+                       title         : 'c12',
+                       order         : 8,
+                       type          : 'Number',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 11
+		},
+		{
+                       name          : 'c44',
+                       title         : 'c44',
+                       order         : 9,
+                       type          : 'Number',
+                       filterable    : true,
+                       enabled       : true,
+                       sort          : true,
+                       width         : 11
+		},
+]
+		},
+
+		created : function ()
+		{
+			this.tableOptions =
+			{
+				// title   : 'Sample database',
+				columns : this.columns,
+				controls : true,
+				footer : false,
+				highlight : false
+			};
+		},
+
+		mounted : function ()
+		{
+			this.sendData();
+		},
+
+		methods :
+		{
+			sendData : function ()
+			{
+				// Enable the table loader.
+				this.tableLoader = true;
+
+				// let dataCount = sampleData.length;
+
+				this.getData( 100 ).then( ( result ) =>
+				{
+					this.eventFromApp =
+						{
+							name    : 'sendData',
+							payload : result
+						};
+
+					this.triggerEvent();
+
+					// Disable the table loader.
+					this.tableLoader = false;
+				});
+			},
+
+			// Triggers the currently queued JD-Table event to run.
+			triggerEvent : function ()
+			{
+				// Trigger the event.
+				this.eventFromAppTrigger = true;
+
+				// Reset the trigger event.
+				this.$nextTick( () =>
+				{
+					this.eventFromAppTrigger = false;
+				});
+			},
+
+			// Triggered when the JD-Table emits a "eventFromJDTable" event.
+			processEventFromApp : function ( componentState )
+			{
+				if ( componentState.lastAction === 'Refresh' )
+				{
+					this.getData( 100 ).then( ( result ) =>
+					{
+						this.eventFromApp =
+							{
+								name    : 'sendData',
+								payload : result
+							};
+
+						this.triggerEvent();
+					});
+				}
+			},
+
+			getData : function ( howManyRows )
+			{
+				return new Promise( ( resolve, reject ) =>
+				{
+					let sampleData =
+					[
+	{
+		'id':'0',
+		'sorted_formula':'Ir0.25Ti0.75',
+		'B':'161.36',
+		'G':'55.14',
+		'E':'148.50',
+		'C_prime':'38.24',
+		'c11':'212.36',
+		'c12':'135.90',
+		'c44':'70.49',
+	},
+	{
+		'id':'1',
+		'sorted_formula':'Ir0.5Ti0.5',
+		'B':'217.88',
+		'G':'37.21',
+		'E':'105.61',
+		'C_prime':'4.26',
+		'c11':'223.60',
+		'c12':'215.08',
+		'c44':'108.93',
+	},
+	{
+		'id':'2',
+		'sorted_formula':'Tc0.25Ti0.75',
+		'B':'148.36',
+		'G':'41.62',
+		'E':'114.20',
+		'C_prime':'38.46',
+		'c11':'199.65',
+		'c12':'122.73',
+		'c44':'43.94',
+	},
+	{
+		'id':'3',
+		'sorted_formula':'Tc0.5Ti0.5',
+		'B':'205.43',
+		'G':'78.65',
+		'E':'209.26',
+		'C_prime':'88.95',
+		'c11':'324.05',
+		'c12':'146.14',
+		'c44':'72.48',
+	},
+	{
+		'id':'4',
+		'sorted_formula':'Os0.25Ti0.75',
+		'B':'168.25',
+		'G':'56.34',
+		'E':'152.01',
+		'C_prime':'46.80',
+		'c11':'230.70',
+		'c12':'137.00',
+		'c44':'63.84',
+	},
+	{
+		'id':'5',
+		'sorted_formula':'Os0.5Ti0.5',
+		'B':'232.53',
+		'G':'88.97',
+		'E':'236.72',
+		'C_prime':'64.86',
+		'c11':'319.31',
+		'c12':'189.60',
+		'c44':'110.08',
+	},
+	{
+		'id':'6',
+		'sorted_formula':'Re0.25Ti0.75',
+		'B':'162.23',
+		'G':'47.21',
+		'E':'129.11',
+		'C_prime':'39.70',
+		'c11':'215.22',
+		'c12':'135.82',
+		'c44':'53.08',
+	},
+	{
+		'id':'7',
+		'sorted_formula':'Re0.5Ti0.5',
+		'B':'233.96',
+		'G':'91.47',
+		'E':'242.78',
+		'C_prime':'91.85',
+		'c11':'356.47',
+		'c12':'172.77',
+		'c44':'91.25',
+	},
+	{
+		'id':'8',
+		'sorted_formula':'Ru0.25Ti0.75',
+		'B':'149.73',
+		'G':'47.96',
+		'E':'129.99',
+		'C_prime':'41.16',
+		'c11':'204.62',
+		'c12':'122.91',
+		'c44':'53.15',
+	},
+	{
+		'id':'9',
+		'sorted_formula':'Ru0.5Ti0.5',
+		'B':'198.06',
+		'G':'71.42',
+		'E':'191.28',
+		'C_prime':'58.81',
+		'c11':'276.49',
+		'c12':'158.87',
+		'c44':'81.39',
+	},
+	{
+		'id':'10',
+		'sorted_formula':'Ti0.75W0.25',
+		'B':'147.67',
+		'G':'33.26',
+		'E':'92.82',
+		'C_prime':'23.48',
+		'c11':'178.98',
+		'c12':'132.02',
+		'c44':'42.05',
+	},
+	{
+		'id':'11',
+		'sorted_formula':'Ti0.5W0.5',
+		'B':'195.60',
+		'G':'63.10',
+		'E':'170.93',
+		'C_prime':'61.50',
+		'c11':'277.61',
+		'c12':'154.61',
+		'c44':'64.26',
+	},
+	{
+		'id':'12',
+		'sorted_formula':'Nb0.25Ti0.75',
+		'B':'122.06',
+		'G':'23.56',
+		'E':'66.40',
+		'C_prime':'12.76',
+		'c11':'139.08',
+		'c12':'113.54',
+		'c44':'35.48',
+	},
+	{
+		'id':'13',
+		'sorted_formula':'Nb0.5Ti0.5',
+		'B':'136.88',
+		'G':'26.41',
+		'E':'74.46',
+		'C_prime':'27.26',
+		'c11':'173.23',
+		'c12':'118.72',
+		'c44':'25.90',
+	},
+	{
+		'id':'14',
+		'sorted_formula':'Rh0.25Ti0.75',
+		'B':'142.02',
+		'G':'44.85',
+		'E':'121.74',
+		'C_prime':'31.29',
+		'c11':'183.75',
+		'c12':'121.17',
+		'c44':'57.13',
+	},
+	{
+		'id':'15',
+		'sorted_formula':'Rh0.5Ti0.5',
+		'B':'178.90',
+		'G':'43.64',
+		'E':'121.08',
+		'C_prime':'16.76',
+		'c11':'201.27',
+		'c12':'167.75',
+		'c44':'81.30',
+	},
+	{
+		'id':'16',
+		'sorted_formula':'Ta0.25Ti0.75',
+		'B':'127.59',
+		'G':'23.20',
+		'E':'65.48',
+		'C_prime':'8.47',
+		'c11':'138.89',
+		'c12':'121.95',
+		'c44':'44.11',
+	},
+	{
+		'id':'17',
+		'sorted_formula':'Ta0.5Ti0.5',
+		'B':'149.87',
+		'G':'32.80',
+		'E':'91.59',
+		'C_prime':'19.47',
+		'c11':'175.83',
+		'c12':'136.90',
+		'c44':'46.50',
+	},
+	{
+		'id':'18',
+		'sorted_formula':'Mo0.25Ti0.75',
+		'B':'138.69',
+		'G':'30.44',
+		'E':'85.10',
+		'C_prime':'25.91',
+		'c11':'173.25',
+		'c12':'121.42',
+		'c44':'33.96',
+	},
+	{
+		'id':'19',
+		'sorted_formula':'Mo0.5Ti0.5',
+		'B':'176.42',
+		'G':'51.77',
+		'E':'141.48',
+		'C_prime':'64.76',
+		'c11':'262.78',
+		'c12':'133.26',
+		'c44':'44.60',
+	},
+	{
+		'id':'20',
+		'sorted_formula':'Ir0.25Zr0.75',
+		'B':'128.57',
+		'G':'38.14',
+		'E':'104.12',
+		'C_prime':'26.83',
+		'c11':'164.35',
+		'c12':'110.69',
+		'c44':'48.35',
+	},
+	{
+		'id':'21',
+		'sorted_formula':'Ir0.5Zr0.5',
+		'B':'180.84',
+		'G':'37.24',
+		'E':'104.55',
+		'C_prime':'11.24',
+		'c11':'195.84',
+		'c12':'173.36',
+		'c44':'79.55',
+	},
+	{
+		'id':'22',
+		'sorted_formula':'Tc0.25Zr0.75',
+		'B':'119.36',
+		'G':'29.46',
+		'E':'81.67',
+		'C_prime':'28.01',
+		'c11':'156.73',
+		'c12':'100.70',
+		'c44':'30.50',
+	},
+	{
+		'id':'23',
+		'sorted_formula':'Tc0.5Zr0.5',
+		'B':'165.49',
+		'G':'59.08',
+		'E':'158.39',
+		'C_prime':'70.56',
+		'c11':'259.58',
+		'c12':'118.45',
+		'c44':'52.47',
+	},
+	{
+		'id':'24',
+		'sorted_formula':'Os0.25Zr0.75',
+		'B':'133.40',
+		'G':'40.83',
+		'E':'111.15',
+		'C_prime':'34.32',
+		'c11':'179.17',
+		'c12':'110.52',
+		'c44':'45.87',
+	},
+	{
+		'id':'25',
+		'sorted_formula':'Os0.5Zr0.5',
+		'B':'196.56',
+		'G':'68.34',
+		'E':'183.73',
+		'C_prime':'53.40',
+		'c11':'267.77',
+		'c12':'160.97',
+		'c44':'80.67',
+	},
+	{
+		'id':'26',
+		'sorted_formula':'Re0.25Zr0.75',
+		'B':'131.45',
+		'G':'34.82',
+		'E':'95.98',
+		'C_prime':'30.79',
+		'c11':'172.51',
+		'c12':'110.93',
+		'c44':'37.82',
+	},
+	{
+		'id':'27',
+		'sorted_formula':'Re0.5Zr0.5',
+		'B':'195.38',
+		'G':'73.45',
+		'E':'195.81',
+		'C_prime':'78.29',
+		'c11':'299.78',
+		'c12':'143.19',
+		'c44':'70.41',
+	},
+	{
+		'id':'28',
+		'sorted_formula':'Ru0.25Zr0.75',
+		'B':'119.14',
+		'G':'34.04',
+		'E':'93.25',
+		'C_prime':'29.34',
+		'c11':'158.28',
+		'c12':'99.60',
+		'c44':'37.62',
+	},
+	{
+		'id':'29',
+		'sorted_formula':'Ru0.5Zr0.5',
+		'B':'162.87',
+		'G':'54.38',
+		'E':'146.79',
+		'C_prime':'47.38',
+		'c11':'226.04',
+		'c12':'131.29',
+		'c44':'59.66',
+	},
+	{
+		'id':'30',
+		'sorted_formula':'W0.25Zr0.75',
+		'B':'121.93',
+		'G':'25.31',
+		'E':'71.01',
+		'C_prime':'19.96',
+		'c11':'148.56',
+		'c12':'108.64',
+		'c44':'29.69',
+	},
+	{
+		'id':'31',
+		'sorted_formula':'W0.5Zr0.5',
+		'B':'168.41',
+		'G':'51.26',
+		'E':'139.62',
+		'C_prime':'53.63',
+		'c11':'239.93',
+		'c12':'132.66',
+		'c44':'49.76',
+	},
+	{
+		'id':'32',
+		'sorted_formula':'Nb0.25Zr0.75',
+		'B':'101.91',
+		'G':'9.87',
+		'E':'28.68',
+		'C_prime':'2.66',
+		'c11':'105.46',
+		'c12':'100.13',
+		'c44':'21.76',
+	},
+	{
+		'id':'33',
+		'sorted_formula':'Nb0.5Zr0.5',
+		'B':'121.39',
+		'G':'19.54',
+		'E':'55.63',
+		'C_prime':'24.38',
+		'c11':'153.89',
+		'c12':'105.14',
+		'c44':'16.86',
+	},
+	{
+		'id':'34',
+		'sorted_formula':'Rh0.25Zr0.75',
+		'B':'113.85',
+		'G':'30.95',
+		'E':'85.13',
+		'C_prime':'21.26',
+		'c11':'142.21',
+		'c12':'99.69',
+		'c44':'39.90',
+	},
+	{
+		'id':'35',
+		'sorted_formula':'Rh0.5Zr0.5',
+		'B':'166.09',
+		'G':'41.16',
+		'E':'114.06',
+		'C_prime':'20.82',
+		'c11':'193.85',
+		'c12':'152.22',
+		'c44':'65.06',
+	},
+	{
+		'id':'36',
+		'sorted_formula':'Ta0.25Zr0.75',
+		'B':'107.90',
+		'G':'13.79',
+		'E':'39.68',
+		'C_prime':'3.43',
+		'c11':'112.48',
+		'c12':'105.62',
+		'c44':'31.40',
+	},
+	{
+		'id':'37',
+		'sorted_formula':'Ta0.5Zr0.5',
+		'B':'133.31',
+		'G':'26.96',
+		'E':'75.78',
+		'C_prime':'16.97',
+		'c11':'155.95',
+		'c12':'122.00',
+		'c44':'36.78',
+	},
+	{
+		'id':'38',
+		'sorted_formula':'Mo0.25Zr0.75',
+		'B':'114.01',
+		'G':'21.30',
+		'E':'60.15',
+		'C_prime':'19.77',
+		'c11':'140.38',
+		'c12':'100.83',
+		'c44':'22.41',
+	},
+	{
+		'id':'39',
+		'sorted_formula':'Mo0.5Zr0.5',
+		'B':'150.48',
+		'G':'38.44',
+		'E':'106.27',
+		'C_prime':'52.49',
+		'c11':'220.46',
+		'c12':'115.49',
+		'c44':'31.17',
+	},
+	{
+		'id':'40',
+		'sorted_formula':'Ti1.0',
+		'B':'104.60',
+		'G':'-18.10',
+		'E':'-57.60',
+		'C_prime':'-12.20',
+		'c11':'88.40',
+		'c12':'112.80',
+		'c44':'40.60',
+	},
+	{
+		'id':'41',
+		'sorted_formula':'Zr1.0',
+		'B':'87.80',
+		'G':'3.90',
+		'E':'11.60',
+		'C_prime':'-3.40',
+		'c11':'83.30',
+		'c12':'90.10',
+		'c44':'31.90',
+	},
+	{
+		'id':'42',
+		'sorted_formula':'Nb0.0625Ti0.9375',
+		'B':'109.22',
+		'G':'6.61',
+		'E':'19.67',
+		'C_prime':'-3.68',
+		'c11':'104.31',
+		'c12':'111.68',
+		'c44':'42.40',
+	},
+	{
+		'id':'43',
+		'sorted_formula':'Mo0.0625Ti0.9375',
+		'B':'113.57',
+		'G':'13.00',
+		'E':'37.60',
+		'C_prime':'0.60',
+		'c11':'114.39',
+		'c12':'113.19',
+		'c44':'40.71',
+	},
+	{
+		'id':'44',
+		'sorted_formula':'Tc0.0625Ti0.9375',
+		'B':'115.56',
+		'G':'17.10',
+		'E':'48.96',
+		'C_prime':'3.77',
+		'c11':'120.58',
+		'c12':'113.05',
+		'c44':'40.86',
+	},
+	{
+		'id':'45',
+		'sorted_formula':'Ru0.0625Ti0.9375',
+		'B':'117.36',
+		'G':'18.04',
+		'E':'51.50',
+		'C_prime':'4.41',
+		'c11':'123.26',
+		'c12':'114.45',
+		'c44':'41.53',
+	},
+	{
+		'id':'46',
+		'sorted_formula':'Rh0.0625Ti0.9375',
+		'B':'114.14',
+		'G':'16.08',
+		'E':'46.52',
+		'C_prime':'2.76',
+		'c11':'117.82',
+		'c12':'112.30',
+		'c44':'42.35',
+	},
+	{
+		'id':'47',
+		'sorted_formula':'Ta0.0625Ti0.9375',
+		'B':'111.05',
+		'G':'6.85',
+		'E':'20.20',
+		'C_prime':'-4.12',
+		'c11':'105.55',
+		'c12':'113.80',
+		'c44':'45.45',
+	},
+	{
+		'id':'48',
+		'sorted_formula':'Ti0.9375W0.0625',
+		'B':'115.75',
+		'G':'13.62',
+		'E':'39.30',
+		'C_prime':'-0.04',
+		'c11':'115.56',
+		'c12':'115.64',
+		'c44':'42.96',
+	},
+	{
+		'id':'49',
+		'sorted_formula':'Re0.0625Ti0.9375',
+		'B':'120.78',
+		'G':'17.36',
+		'E':'49.70',
+		'C_prime':'3.58',
+		'c11':'125.80',
+		'c12':'118.65',
+		'c44':'42.50',
+	},
+	{
+		'id':'50',
+		'sorted_formula':'Os0.0625Ti0.9375',
+		'B':'119.65',
+		'G':'19.46',
+		'E':'55.40',
+		'C_prime':'5.29',
+		'c11':'126.71',
+		'c12':'116.12',
+		'c44':'42.91',
+	},
+	{
+		'id':'51',
+		'sorted_formula':'Ir0.0625Ti0.9375',
+		'B':'118.62',
+		'G':'18.27',
+		'E':'52.10',
+		'C_prime':'4.17',
+		'c11':'124.19',
+		'c12':'115.84',
+		'c44':'43.53',
+	},
+	{
+		'id':'52',
+		'sorted_formula':'Nb0.0625Zr0.9375',
+		'B':'91.32',
+		'G':'10.22',
+		'E':'29.57',
+		'C_prime':'0.63',
+		'c11':'92.16',
+		'c12':'90.90',
+		'c44':'31.12',
+	},
+	{
+		'id':'53',
+		'sorted_formula':'Mo0.0625Zr0.9375',
+		'B':'93.26',
+		'G':'9.61',
+		'E':'27.88',
+		'C_prime':'0.79',
+		'c11':'94.32',
+		'c12':'92.74',
+		'c44':'28.58',
+	},
+	{
+		'id':'54',
+		'sorted_formula':'Tc0.0625Zr0.9375',
+		'B':'94.20',
+		'G':'10.43',
+		'E':'30.17',
+		'C_prime':'1.49',
+		'c11':'96.19',
+		'c12':'93.21',
+		'c44':'28.33',
+	},
+	{
+		'id':'55',
+		'sorted_formula':'Ru0.0625Zr0.9375',
+		'B':'94.38',
+		'G':'11.23',
+		'E':'32.41',
+		'C_prime':'1.89',
+		'c11':'96.92',
+		'c12':'93.13',
+		'c44':'29.41',
+	},
+	{
+		'id':'56',
+		'sorted_formula':'Rh0.0625Zr0.9375',
+		'B':'93.46',
+		'G':'10.12',
+		'E':'29.29',
+		'C_prime':'0.99',
+		'c11':'94.83',
+		'c12':'92.86',
+		'c44':'30.64',
+	},
+	{
+		'id':'57',
+		'sorted_formula':'Ta0.0625Zr0.9375',
+		'B':'92.66',
+		'G':'10.02',
+		'E':'29.02',
+		'C_prime':'0.17',
+		'c11':'92.89',
+		'c12':'92.56',
+		'c44':'32.64',
+	},
+	{
+		'id':'58',
+		'sorted_formula':'W0.0625Zr0.9375',
+		'B':'96.29',
+		'G':'10.23',
+		'E':'29.64',
+		'C_prime':'0.89',
+		'c11':'97.59',
+		'c12':'95.81',
+		'c44':'30.04',
+	},
+	{
+		'id':'59',
+		'sorted_formula':'Re0.0625Zr0.9375',
+		'B':'96.61',
+		'G':'11.37',
+		'E':'32.81',
+		'C_prime':'1.98',
+		'c11':'99.26',
+		'c12':'95.30',
+		'c44':'29.27',
+	},
+	{
+		'id':'60',
+		'sorted_formula':'Os0.0625Zr0.9375',
+		'B':'97.11',
+		'G':'12.67',
+		'E':'36.42',
+		'C_prime':'2.83',
+		'c11':'100.89',
+		'c12':'95.24',
+		'c44':'30.26',
+	},
+	{
+		'id':'61',
+		'sorted_formula':'Ir0.0625Zr0.9375',
+		'B':'96.45',
+		'G':'12.61',
+		'E':'36.25',
+		'C_prime':'2.52',
+		'c11':'99.82',
+		'c12':'94.78',
+		'c44':'31.61',
+	},
+];
+
+					resolve(sampleData);
+				});
+			}
+		}
+	});
+</script>
+</body>
+</html>
